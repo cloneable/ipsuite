@@ -124,8 +124,8 @@ impl fmt::Debug for UdpPdu {
 #[derive(Copy, Clone, Debug, Default, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct UdpHeader {
-    pub src_port: network_endian::U16,
-    pub dst_port: network_endian::U16,
+    pub sport: network_endian::U16,
+    pub dport: network_endian::U16,
     pub length: network_endian::U16,
     pub checksum: network_endian::U16,
 }
@@ -140,8 +140,8 @@ impl fmt::Display for UdpHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "src={} dst={} len={} cksum={:04x}",
-            self.src_port, self.dst_port, self.length, self.checksum,
+            "UDP: sport={} dport={} length={} checksum={:04x}",
+            self.sport, self.dport, self.length, self.checksum,
         )
     }
 }

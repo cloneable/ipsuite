@@ -72,6 +72,7 @@ pub struct EthernetHeader {
     pub dst: MacAddress,
     pub src: MacAddress,
     pub ethertype: EtherType,
+    // TODO: checksum
 }
 
 impl EthernetHeader {
@@ -83,7 +84,7 @@ impl fmt::Display for EthernetHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "src={} dst={} type={}",
+            "Ethernet: src={} dst={} type={}",
             self.src, self.dst, self.ethertype
         )
     }
@@ -116,12 +117,7 @@ impl From<[u8; 6]> for MacAddress {
 impl fmt::Debug for MacAddress {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let b = self.0;
-        write!(
-            f,
-            "MacAddress({:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x})",
-            b[0], b[1], b[2], b[3], b[4], b[5]
-        )
+        write!(f, "MacAddress({self})")
     }
 }
 

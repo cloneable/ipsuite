@@ -201,8 +201,8 @@ pub struct Ipv4HeaderFields {
     pub ttl: u8,
     pub protocol: InetProtocol,
     pub checksum: network_endian::U16,
-    pub src: Ipv4Address,
-    pub dst: Ipv4Address,
+    pub saddr: Ipv4Address,
+    pub daddr: Ipv4Address,
 }
 
 impl Default for Ipv4HeaderFields {
@@ -217,8 +217,8 @@ impl Default for Ipv4HeaderFields {
             ttl: 255,
             protocol: InetProtocol::TCP,
             checksum: 0.into(),
-            src: Ipv4Address::UNSPECIFIED,
-            dst: Ipv4Address::UNSPECIFIED,
+            saddr: Ipv4Address::UNSPECIFIED,
+            daddr: Ipv4Address::UNSPECIFIED,
         }
     }
 }
@@ -228,7 +228,7 @@ impl fmt::Display for Ipv4HeaderFields {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "len={} id={} frag={}/{} ttl={} proto={} cksum={:04x} src={} dst={}",
+            "IPv4: len={} id={} frag={}/{} ttl={} protocol={} checksum={:04x} saddr={} daddr={}",
             self.total_length,
             self.identification,
             self.fragmentation.flags(),
@@ -236,8 +236,8 @@ impl fmt::Display for Ipv4HeaderFields {
             self.ttl,
             self.protocol,
             self.checksum,
-            self.src,
-            self.dst,
+            self.saddr,
+            self.daddr,
         )
     }
 }
@@ -424,8 +424,8 @@ pub struct Ipv4PseudoHeader {
     _fragmentation: Fragmentation,
     ttl_protocol: network_endian::U16,
     _checksum: network_endian::U16,
-    src: [network_endian::U16; 2],
-    dst: [network_endian::U16; 2],
+    saddr: [network_endian::U16; 2],
+    daddr: [network_endian::U16; 2],
     _options: [u8],
 }
 
@@ -435,10 +435,10 @@ impl Ipv4PseudoHeader {
     #[must_use]
     pub const fn checksum(&self) -> u32 {
         let mut cs = 0u32;
-        cs = cs.wrapping_add(self.src[0].get() as u32);
-        cs = cs.wrapping_add(self.src[1].get() as u32);
-        cs = cs.wrapping_add(self.dst[0].get() as u32);
-        cs = cs.wrapping_add(self.dst[1].get() as u32);
+        cs = cs.wrapping_add(self.saddr[0].get() as u32);
+        cs = cs.wrapping_add(self.saddr[1].get() as u32);
+        cs = cs.wrapping_add(self.daddr[0].get() as u32);
+        cs = cs.wrapping_add(self.daddr[1].get() as u32);
         cs = cs.wrapping_add(self.protocol() as u32);
         cs.wrapping_add(self.payload_length() as u32)
     }
@@ -464,8 +464,8 @@ impl fmt::Debug for Ipv4PseudoHeader {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Ipv4PseudoHeader")
-            .field("src", &self.src)
-            .field("dst", &self.dst)
+            .field("saddr", &self.saddr)
+            .field("daddr", &self.daddr)
             .field("proto", &self.protocol())
             .field("len", &self.payload_length())
             .finish()

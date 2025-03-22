@@ -173,8 +173,8 @@ impl fmt::Debug for TcpHeader {
 #[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct TcpHeaderFields {
-    pub src_port: network_endian::U16,
-    pub dst_port: network_endian::U16,
+    pub sport: network_endian::U16,
+    pub dport: network_endian::U16,
     pub seq_num: network_endian::U32,
     pub ack_num: network_endian::U32,
     pub data_offset: u8,
@@ -188,8 +188,8 @@ impl Default for TcpHeaderFields {
     #[inline]
     fn default() -> Self {
         TcpHeaderFields {
-            src_port: 0.into(),
-            dst_port: 0.into(),
+            sport: 0.into(),
+            dport: 0.into(),
             seq_num: 0.into(),
             ack_num: 0.into(),
             data_offset: 0x50,
@@ -206,9 +206,9 @@ impl fmt::Display for TcpHeaderFields {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "src={} dst={} seq={} ack={} dataofs={} flags={} window={} cksum={:04x} urgent={}",
-            self.src_port,
-            self.dst_port,
+            "TCP: sport={} dport={} seq={} ack={} dataofs={} flags={} window={} checksum={:04x} urgent_ptr={}",
+            self.sport,
+            self.dport,
             self.seq_num,
             self.ack_num,
             self.header_length(),
