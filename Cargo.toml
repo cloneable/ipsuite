@@ -1,0 +1,12 @@
+[package]
+name = "ipsuite"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[features]
+default = []
+std = []
+
+[dependencies]
+zerocopy = { version = "0.8.24", default-features = false, features = ["derive"] }
