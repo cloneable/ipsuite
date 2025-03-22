@@ -1,7 +1,7 @@
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
 pub mod ethernet;
-pub mod ip;
+pub mod ipv4;
 pub mod tcp;
 pub mod udp;
 
