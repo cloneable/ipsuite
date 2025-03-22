@@ -9,34 +9,34 @@ use super::ChecksumWords;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum UdpPduError {
     InvalidChecksum,
-    CastError,
+    BufferTooShort,
 }
 
 impl From<zerocopy::SizeError<&[u8], UdpPdu>> for UdpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&[u8], UdpPdu>) -> Self {
-        UdpPduError::CastError
+        UdpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::SizeError<&mut [u8], UdpPdu>> for UdpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&mut [u8], UdpPdu>) -> Self {
-        UdpPduError::CastError
+        UdpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::SizeError<&[u8], UdpPduWords>> for UdpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&[u8], UdpPduWords>) -> Self {
-        UdpPduError::CastError
+        UdpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::SizeError<&mut [u8], UdpPduWords>> for UdpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&mut [u8], UdpPduWords>) -> Self {
-        UdpPduError::CastError
+        UdpPduError::BufferTooShort
     }
 }
 

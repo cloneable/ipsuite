@@ -10,55 +10,55 @@ use super::ChecksumWords;
 pub enum Ipv4PduError {
     InvalidHeaderLength,
     InvalidChecksum,
-    CastError,
+    BufferTooShort,
 }
 
 impl From<SizeError<&[u8], Ipv4Pdu>> for Ipv4PduError {
     #[inline]
     fn from(_err: SizeError<&[u8], Ipv4Pdu>) -> Self {
-        Ipv4PduError::CastError
+        Ipv4PduError::BufferTooShort
     }
 }
 
 impl From<SizeError<&mut [u8], Ipv4Pdu>> for Ipv4PduError {
     #[inline]
     fn from(_err: SizeError<&mut [u8], Ipv4Pdu>) -> Self {
-        Ipv4PduError::CastError
+        Ipv4PduError::BufferTooShort
     }
 }
 
 impl From<SizeError<&[u8], Ipv4Header>> for Ipv4PduError {
     #[inline]
     fn from(_err: SizeError<&[u8], Ipv4Header>) -> Self {
-        Ipv4PduError::CastError
+        Ipv4PduError::BufferTooShort
     }
 }
 
 impl From<SizeError<&mut [u8], Ipv4Header>> for Ipv4PduError {
     #[inline]
     fn from(_err: SizeError<&mut [u8], Ipv4Header>) -> Self {
-        Ipv4PduError::CastError
+        Ipv4PduError::BufferTooShort
     }
 }
 
 impl From<SizeError<&[u8], Ipv4HeaderWords>> for Ipv4PduError {
     #[inline]
     fn from(_err: SizeError<&[u8], Ipv4HeaderWords>) -> Self {
-        Ipv4PduError::CastError
+        Ipv4PduError::BufferTooShort
     }
 }
 
 impl From<SizeError<&mut [u8], Ipv4HeaderWords>> for Ipv4PduError {
     #[inline]
     fn from(_err: SizeError<&mut [u8], Ipv4HeaderWords>) -> Self {
-        Ipv4PduError::CastError
+        Ipv4PduError::BufferTooShort
     }
 }
 
 impl From<SizeError<&[u8], Ipv4PseudoHeader>> for Ipv4PduError {
     #[inline]
     fn from(_err: SizeError<&[u8], Ipv4PseudoHeader>) -> Self {
-        Ipv4PduError::CastError
+        Ipv4PduError::BufferTooShort
     }
 }
 

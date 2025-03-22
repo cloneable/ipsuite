@@ -6,20 +6,20 @@ use zerocopy::{
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum EthernetPduError {
-    CastError,
+    BufferTooShort,
 }
 
 impl From<SizeError<&[u8], EthernetPdu>> for EthernetPduError {
     #[inline]
     fn from(_err: SizeError<&[u8], EthernetPdu>) -> Self {
-        EthernetPduError::CastError
+        EthernetPduError::BufferTooShort
     }
 }
 
 impl From<SizeError<&mut [u8], EthernetPdu>> for EthernetPduError {
     #[inline]
     fn from(_err: SizeError<&mut [u8], EthernetPdu>) -> Self {
-        EthernetPduError::CastError
+        EthernetPduError::BufferTooShort
     }
 }
 

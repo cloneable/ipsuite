@@ -10,48 +10,48 @@ use super::ChecksumWords;
 pub enum TcpPduError {
     InvalidHeaderLength,
     InvalidChecksum,
-    CastError,
+    BufferTooShort,
 }
 
 impl From<zerocopy::CastError<&[u8], TcpHeader>> for TcpPduError {
     #[inline]
     fn from(_err: zerocopy::CastError<&[u8], TcpHeader>) -> Self {
-        TcpPduError::CastError
+        TcpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::CastError<&mut [u8], TcpHeader>> for TcpPduError {
     #[inline]
     fn from(_err: zerocopy::CastError<&mut [u8], TcpHeader>) -> Self {
-        TcpPduError::CastError
+        TcpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::SizeError<&[u8], TcpPdu>> for TcpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&[u8], TcpPdu>) -> Self {
-        TcpPduError::CastError
+        TcpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::SizeError<&mut [u8], TcpPdu>> for TcpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&mut [u8], TcpPdu>) -> Self {
-        TcpPduError::CastError
+        TcpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::SizeError<&[u8], TcpPduWords>> for TcpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&[u8], TcpPduWords>) -> Self {
-        TcpPduError::CastError
+        TcpPduError::BufferTooShort
     }
 }
 
 impl From<zerocopy::SizeError<&mut [u8], TcpPduWords>> for TcpPduError {
     #[inline]
     fn from(_err: zerocopy::SizeError<&mut [u8], TcpPduWords>) -> Self {
-        TcpPduError::CastError
+        TcpPduError::BufferTooShort
     }
 }
 
