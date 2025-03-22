@@ -1,8 +1,15 @@
 [package]
 name = "ipsuite"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2024"
-publish = false
+
+description = "[WIP] Collection of Types for the Internet Protocol Suite"
+categories = ["data-structures", "network-programming", "no-std", "no-std::no-alloc"]
+keywords = []
+
+authors = ["Folke <folke@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/cloneable/ipsuite"
 
 [features]
 default = []
