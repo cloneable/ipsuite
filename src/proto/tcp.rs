@@ -1,59 +1,8 @@
 use core::{fmt, mem, ops};
 
-use zerocopy::{
-    FromBytes, Immutable, IntoBytes, KnownLayout, SizeError, Unaligned, network_endian,
-};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
 use super::ChecksumWords;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TcpPduError {
-    InvalidHeaderLength,
-    InvalidChecksum,
-    BufferTooShort,
-}
-
-impl From<zerocopy::CastError<&[u8], TcpHeader>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::CastError<&[u8], TcpHeader>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::CastError<&mut [u8], TcpHeader>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::CastError<&mut [u8], TcpHeader>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], TcpPdu>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], TcpPdu>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], TcpPdu>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], TcpPdu>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], TcpPduWords>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], TcpPduWords>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], TcpPduWords>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], TcpPduWords>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
@@ -68,14 +17,14 @@ impl TcpPdu {
     #[inline]
     pub fn from_bytes(buf: &[u8]) -> Result<&Self, TcpPduError> {
         TcpPdu::ref_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     #[inline]
     pub fn from_bytes_mut(buf: &mut [u8]) -> Result<&mut Self, TcpPduError> {
         TcpPdu::mut_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
@@ -90,7 +39,10 @@ impl TcpPdu {
             .split_at_checked(len)
             .ok_or(TcpPduError::InvalidHeaderLength)?;
 
-        Ok((TcpHeader::ref_from_bytes(header)?, payload))
+        Ok((
+            TcpHeader::ref_from_bytes(header).map_err(zerocopy::SizeError::from)?,
+            payload,
+        ))
     }
 
     #[inline]
@@ -102,7 +54,10 @@ impl TcpPdu {
         let (header, payload) = buf
             .split_at_mut_checked(TcpHeaderFields::SIZE.saturating_add(options))
             .ok_or(TcpPduError::InvalidHeaderLength)?;
-        Ok((TcpHeader::mut_from_bytes(header)?, payload))
+        Ok((
+            TcpHeader::mut_from_bytes(header).map_err(zerocopy::SizeError::from)?,
+            payload,
+        ))
     }
 
     #[inline]
@@ -121,14 +76,14 @@ impl TcpPdu {
     fn as_words(&self) -> Result<&TcpPduWords, TcpPduError> {
         // TODO: half word at end
         TcpPduWords::ref_from_bytes(self.as_bytes())
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     fn as_mut_words(&mut self) -> Result<&mut TcpPduWords, TcpPduError> {
         // TODO: half word at end
         TcpPduWords::mut_from_bytes(self.as_mut_bytes())
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 }
@@ -436,9 +391,9 @@ pub struct TcpOption {
 
 impl TcpOption {
     #[inline]
-    pub fn parse(buf: &[u8]) -> Result<&TcpOption, SizeError<&[u8], TcpOption>> {
+    pub fn parse(buf: &[u8]) -> Result<&TcpOption, zerocopy::SizeError<&[u8], TcpOption>> {
         TcpOption::ref_from_prefix(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map(|r| r.0)
     }
 }
@@ -469,4 +424,53 @@ pub enum TcpOptionEnum {
         length: u8,
         value: network_endian::U16,
     },
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum TcpPduError {
+    InvalidHeaderLength,
+    InvalidChecksum,
+    BufferTooShort,
+}
+
+impl From<zerocopy::SizeError<&[u8], TcpHeader>> for TcpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], TcpHeader>) -> Self {
+        TcpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], TcpHeader>> for TcpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], TcpHeader>) -> Self {
+        TcpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&[u8], TcpPdu>> for TcpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], TcpPdu>) -> Self {
+        TcpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], TcpPdu>> for TcpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], TcpPdu>) -> Self {
+        TcpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&[u8], TcpPduWords>> for TcpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], TcpPduWords>) -> Self {
+        TcpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], TcpPduWords>> for TcpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], TcpPduWords>) -> Self {
+        TcpPduError::BufferTooShort
+    }
 }

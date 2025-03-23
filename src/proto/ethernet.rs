@@ -1,27 +1,6 @@
 use core::{fmt, mem};
 
-use zerocopy::{
-    FromBytes, Immutable, IntoBytes, KnownLayout, SizeError, Unaligned, network_endian,
-};
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum EthernetPduError {
-    BufferTooShort,
-}
-
-impl From<SizeError<&[u8], EthernetPdu>> for EthernetPduError {
-    #[inline]
-    fn from(_err: SizeError<&[u8], EthernetPdu>) -> Self {
-        EthernetPduError::BufferTooShort
-    }
-}
-
-impl From<SizeError<&mut [u8], EthernetPdu>> for EthernetPduError {
-    #[inline]
-    fn from(_err: SizeError<&mut [u8], EthernetPdu>) -> Self {
-        EthernetPduError::BufferTooShort
-    }
-}
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
@@ -34,14 +13,14 @@ impl EthernetPdu {
     #[inline]
     pub fn from_bytes(buf: &[u8]) -> Result<&Self, EthernetPduError> {
         EthernetPdu::ref_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     #[inline]
     pub fn from_bytes_mut(buf: &mut [u8]) -> Result<&mut Self, EthernetPduError> {
         EthernetPdu::mut_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
@@ -176,5 +155,24 @@ impl fmt::Display for EtherType {
         } else {
             write!(f, "0x{:04X}", self.0)
         }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum EthernetPduError {
+    BufferTooShort,
+}
+
+impl From<zerocopy::SizeError<&[u8], EthernetPdu>> for EthernetPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], EthernetPdu>) -> Self {
+        EthernetPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], EthernetPdu>> for EthernetPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], EthernetPdu>) -> Self {
+        EthernetPduError::BufferTooShort
     }
 }

@@ -1,44 +1,8 @@
 use core::{fmt, mem};
 
-use zerocopy::{
-    FromBytes, Immutable, IntoBytes, KnownLayout, SizeError, Unaligned, network_endian,
-};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
 use super::ChecksumWords;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum UdpPduError {
-    InvalidChecksum,
-    BufferTooShort,
-}
-
-impl From<zerocopy::SizeError<&[u8], UdpPdu>> for UdpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], UdpPdu>) -> Self {
-        UdpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], UdpPdu>> for UdpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], UdpPdu>) -> Self {
-        UdpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], UdpPduWords>> for UdpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], UdpPduWords>) -> Self {
-        UdpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], UdpPduWords>> for UdpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], UdpPduWords>) -> Self {
-        UdpPduError::BufferTooShort
-    }
-}
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
@@ -73,7 +37,7 @@ impl UdpPdu {
     fn as_words(&self) -> Result<&UdpPduWords, UdpPduError> {
         // TODO: half word at end
         UdpPduWords::ref_from_bytes(self.as_bytes())
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
@@ -81,21 +45,21 @@ impl UdpPdu {
     fn as_mut_words(&mut self) -> Result<&mut UdpPduWords, UdpPduError> {
         // TODO: half word at end
         UdpPduWords::mut_from_bytes(self.as_mut_bytes())
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     #[inline]
     pub fn from_bytes(buf: &[u8]) -> Result<&Self, UdpPduError> {
         UdpPdu::ref_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     #[inline]
     pub fn from_bytes_mut(buf: &mut [u8]) -> Result<&mut Self, UdpPduError> {
         UdpPdu::mut_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
@@ -115,7 +79,6 @@ impl fmt::Debug for UdpPdu {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UdpPdu")
             .field("header", &self.header)
-            // TODO: debug print options
             .field("payload", &self.payload.len())
             .finish()
     }
@@ -143,5 +106,39 @@ impl fmt::Display for UdpHeader {
             "UDP: sport={} dport={} length={} checksum={:04x}",
             self.sport, self.dport, self.length, self.checksum,
         )
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum UdpPduError {
+    InvalidChecksum,
+    BufferTooShort,
+}
+
+impl From<zerocopy::SizeError<&[u8], UdpPdu>> for UdpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], UdpPdu>) -> Self {
+        UdpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], UdpPdu>> for UdpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], UdpPdu>) -> Self {
+        UdpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&[u8], UdpPduWords>> for UdpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], UdpPduWords>) -> Self {
+        UdpPduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], UdpPduWords>> for UdpPduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], UdpPduWords>) -> Self {
+        UdpPduError::BufferTooShort
     }
 }

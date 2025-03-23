@@ -1,66 +1,8 @@
 use core::{fmt, mem};
 
-use zerocopy::{
-    FromBytes, Immutable, IntoBytes, KnownLayout, SizeError, Unaligned, network_endian,
-};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
 use super::ChecksumWords;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Ipv4PduError {
-    InvalidHeaderLength,
-    InvalidChecksum,
-    BufferTooShort,
-}
-
-impl From<SizeError<&[u8], Ipv4Pdu>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: SizeError<&[u8], Ipv4Pdu>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<SizeError<&mut [u8], Ipv4Pdu>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: SizeError<&mut [u8], Ipv4Pdu>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<SizeError<&[u8], Ipv4Header>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: SizeError<&[u8], Ipv4Header>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<SizeError<&mut [u8], Ipv4Header>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: SizeError<&mut [u8], Ipv4Header>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<SizeError<&[u8], Ipv4HeaderWords>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: SizeError<&[u8], Ipv4HeaderWords>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<SizeError<&mut [u8], Ipv4HeaderWords>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: SizeError<&mut [u8], Ipv4HeaderWords>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<SizeError<&[u8], Ipv4PseudoHeader>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: SizeError<&[u8], Ipv4PseudoHeader>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
@@ -73,14 +15,14 @@ impl Ipv4Pdu {
     #[inline]
     pub fn from_bytes(buf: &[u8]) -> Result<&Self, Ipv4PduError> {
         Ipv4Pdu::ref_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     #[inline]
     pub fn from_bytes_mut(buf: &mut [u8]) -> Result<&mut Self, Ipv4PduError> {
         Ipv4Pdu::mut_from_bytes(buf)
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
@@ -96,7 +38,7 @@ impl Ipv4Pdu {
             .ok_or(Ipv4PduError::InvalidHeaderLength)?;
 
         Ok((
-            Ipv4Header::ref_from_bytes(header).map_err(SizeError::from)?,
+            Ipv4Header::ref_from_bytes(header).map_err(zerocopy::SizeError::from)?,
             payload,
         ))
     }
@@ -112,7 +54,7 @@ impl Ipv4Pdu {
             .split_at_mut_checked(Ipv4HeaderFields::SIZE.saturating_add(options))
             .ok_or(Ipv4PduError::InvalidHeaderLength)?;
         Ok((
-            Ipv4Header::mut_from_bytes(header).map_err(SizeError::from)?,
+            Ipv4Header::mut_from_bytes(header).map_err(zerocopy::SizeError::from)?,
             payload,
         ))
     }
@@ -160,21 +102,21 @@ impl Ipv4Header {
     pub fn pseudo_header(&self) -> Result<&Ipv4PseudoHeader, Ipv4PduError> {
         // TODO: half word at end
         Ipv4PseudoHeader::ref_from_bytes(self.as_bytes())
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     fn as_words(&self) -> Result<&Ipv4HeaderWords, Ipv4PduError> {
         // TODO: half word at end
         Ipv4HeaderWords::ref_from_bytes(self.as_bytes())
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 
     fn as_mut_words(&mut self) -> Result<&mut Ipv4HeaderWords, Ipv4PduError> {
         // TODO: half word at end
         Ipv4HeaderWords::mut_from_bytes(self.as_mut_bytes())
-            .map_err(SizeError::from)
+            .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
 }
@@ -469,5 +411,61 @@ impl fmt::Debug for Ipv4PseudoHeader {
             .field("proto", &self.protocol())
             .field("len", &self.payload_length())
             .finish()
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Ipv4PduError {
+    InvalidHeaderLength,
+    InvalidChecksum,
+    BufferTooShort,
+}
+
+impl From<zerocopy::SizeError<&[u8], Ipv4Pdu>> for Ipv4PduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], Ipv4Pdu>) -> Self {
+        Ipv4PduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], Ipv4Pdu>> for Ipv4PduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], Ipv4Pdu>) -> Self {
+        Ipv4PduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&[u8], Ipv4Header>> for Ipv4PduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], Ipv4Header>) -> Self {
+        Ipv4PduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], Ipv4Header>> for Ipv4PduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], Ipv4Header>) -> Self {
+        Ipv4PduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&[u8], Ipv4HeaderWords>> for Ipv4PduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], Ipv4HeaderWords>) -> Self {
+        Ipv4PduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&mut [u8], Ipv4HeaderWords>> for Ipv4PduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&mut [u8], Ipv4HeaderWords>) -> Self {
+        Ipv4PduError::BufferTooShort
+    }
+}
+
+impl From<zerocopy::SizeError<&[u8], Ipv4PseudoHeader>> for Ipv4PduError {
+    #[inline]
+    fn from(_err: zerocopy::SizeError<&[u8], Ipv4PseudoHeader>) -> Self {
+        Ipv4PduError::BufferTooShort
     }
 }
