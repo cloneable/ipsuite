@@ -163,16 +163,17 @@ pub enum EthernetPduError {
     BufferTooShort,
 }
 
-impl From<zerocopy::SizeError<&[u8], EthernetPdu>> for EthernetPduError {
+// TODO: sealed trait for T
+impl<T: ?Sized> From<zerocopy::SizeError<&mut [u8], T>> for EthernetPduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], EthernetPdu>) -> Self {
+    fn from(_err: zerocopy::SizeError<&mut [u8], T>) -> Self {
         EthernetPduError::BufferTooShort
     }
 }
 
-impl From<zerocopy::SizeError<&mut [u8], EthernetPdu>> for EthernetPduError {
+impl<T: ?Sized> From<zerocopy::SizeError<&[u8], T>> for EthernetPduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], EthernetPdu>) -> Self {
+    fn from(_err: zerocopy::SizeError<&[u8], T>) -> Self {
         EthernetPduError::BufferTooShort
     }
 }

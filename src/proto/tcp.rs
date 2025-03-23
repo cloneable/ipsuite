@@ -433,44 +433,17 @@ pub enum TcpPduError {
     BufferTooShort,
 }
 
-impl From<zerocopy::SizeError<&[u8], TcpHeader>> for TcpPduError {
+// TODO: sealed trait for T
+impl<T: ?Sized> From<zerocopy::SizeError<&mut [u8], T>> for TcpPduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], TcpHeader>) -> Self {
+    fn from(_err: zerocopy::SizeError<&mut [u8], T>) -> Self {
         TcpPduError::BufferTooShort
     }
 }
 
-impl From<zerocopy::SizeError<&mut [u8], TcpHeader>> for TcpPduError {
+impl<T: ?Sized> From<zerocopy::SizeError<&[u8], T>> for TcpPduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], TcpHeader>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], TcpPdu>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], TcpPdu>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], TcpPdu>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], TcpPdu>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], TcpPduWords>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], TcpPduWords>) -> Self {
-        TcpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], TcpPduWords>> for TcpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], TcpPduWords>) -> Self {
+    fn from(_err: zerocopy::SizeError<&[u8], T>) -> Self {
         TcpPduError::BufferTooShort
     }
 }

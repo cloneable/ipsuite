@@ -421,51 +421,17 @@ pub enum Ipv4PduError {
     BufferTooShort,
 }
 
-impl From<zerocopy::SizeError<&[u8], Ipv4Pdu>> for Ipv4PduError {
+// TODO: sealed trait for T
+impl<T: ?Sized> From<zerocopy::SizeError<&mut [u8], T>> for Ipv4PduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], Ipv4Pdu>) -> Self {
+    fn from(_err: zerocopy::SizeError<&mut [u8], T>) -> Self {
         Ipv4PduError::BufferTooShort
     }
 }
 
-impl From<zerocopy::SizeError<&mut [u8], Ipv4Pdu>> for Ipv4PduError {
+impl<T: ?Sized> From<zerocopy::SizeError<&[u8], T>> for Ipv4PduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], Ipv4Pdu>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], Ipv4Header>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], Ipv4Header>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], Ipv4Header>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], Ipv4Header>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], Ipv4HeaderWords>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], Ipv4HeaderWords>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], Ipv4HeaderWords>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], Ipv4HeaderWords>) -> Self {
-        Ipv4PduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], Ipv4PseudoHeader>> for Ipv4PduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], Ipv4PseudoHeader>) -> Self {
+    fn from(_err: zerocopy::SizeError<&[u8], T>) -> Self {
         Ipv4PduError::BufferTooShort
     }
 }

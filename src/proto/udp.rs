@@ -115,30 +115,17 @@ pub enum UdpPduError {
     BufferTooShort,
 }
 
-impl From<zerocopy::SizeError<&[u8], UdpPdu>> for UdpPduError {
+// TODO: sealed trait for T
+impl<T: ?Sized> From<zerocopy::SizeError<&mut [u8], T>> for UdpPduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], UdpPdu>) -> Self {
+    fn from(_err: zerocopy::SizeError<&mut [u8], T>) -> Self {
         UdpPduError::BufferTooShort
     }
 }
 
-impl From<zerocopy::SizeError<&mut [u8], UdpPdu>> for UdpPduError {
+impl<T: ?Sized> From<zerocopy::SizeError<&[u8], T>> for UdpPduError {
     #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], UdpPdu>) -> Self {
-        UdpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&[u8], UdpPduWords>> for UdpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&[u8], UdpPduWords>) -> Self {
-        UdpPduError::BufferTooShort
-    }
-}
-
-impl From<zerocopy::SizeError<&mut [u8], UdpPduWords>> for UdpPduError {
-    #[inline]
-    fn from(_err: zerocopy::SizeError<&mut [u8], UdpPduWords>) -> Self {
+    fn from(_err: zerocopy::SizeError<&[u8], T>) -> Self {
         UdpPduError::BufferTooShort
     }
 }
