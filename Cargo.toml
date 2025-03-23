@@ -8,7 +8,7 @@ categories = ["data-structures", "network-programming", "no-std", "no-std::no-al
 keywords = []
 
 authors = ["Folke <folke@gmail.com>"]
-license = "MIT OR Apache-2.0"
+license = "Apache-2.0 OR BSD-2-Clause OR MIT"
 repository = "https://github.com/cloneable/ipsuite"
 
 [features]
