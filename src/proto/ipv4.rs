@@ -2,13 +2,13 @@ use core::{fmt, mem};
 
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
-use super::ChecksumWords;
+use super::{ChecksumWords, Data};
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct Ipv4Pdu {
     pub fields: Ipv4HeaderFields,
-    pub options_payload: [u8],
+    pub options_payload: Data,
 }
 
 impl Ipv4Pdu {
@@ -66,7 +66,7 @@ impl fmt::Debug for Ipv4Pdu {
         f.debug_struct("Ipv4Pdu")
             .field("fields", &self.fields)
             // TODO: debug print options
-            .field("options_payload", &self.options_payload.len())
+            .field("options_payload", &&self.options_payload)
             .finish()
     }
 }

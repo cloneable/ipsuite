@@ -2,11 +2,13 @@ use core::{fmt, mem};
 
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
+use super::Data;
+
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct EthernetPdu {
     pub header: EthernetHeader,
-    pub payload: [u8],
+    pub payload: Data,
 }
 
 impl EthernetPdu {
@@ -30,7 +32,7 @@ impl EthernetPdu {
     }
 
     #[inline]
-    pub fn as_mut_parts(&mut self) -> Result<(&mut EthernetHeader, &mut [u8]), EthernetPduError> {
+    pub fn as_mut_parts(&mut self) -> Result<(&mut EthernetHeader, &mut Data), EthernetPduError> {
         Ok((&mut self.header, &mut self.payload))
     }
 }
@@ -40,7 +42,7 @@ impl fmt::Debug for EthernetPdu {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("EthernetPdu")
             .field("header", &self.header)
-            .field("payload", &self.payload.len())
+            .field("payload", &&self.payload)
             .finish()
     }
 }

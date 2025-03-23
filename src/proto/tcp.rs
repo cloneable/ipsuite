@@ -2,13 +2,13 @@ use core::{fmt, mem, ops};
 
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
-use super::ChecksumWords;
+use super::{ChecksumWords, Data};
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct TcpPdu {
     pub fields: TcpHeaderFields,
-    pub options_payload: [u8],
+    pub options_payload: Data,
 }
 
 type TcpPduWords = ChecksumWords<{ TcpHeaderFields::WORDS }, 8>;
@@ -94,7 +94,7 @@ impl fmt::Debug for TcpPdu {
         f.debug_struct("TcpPdu")
             .field("header", &self.fields)
             // TODO: debug print options
-            .field("options_payload", &self.options_payload.len())
+            .field("options_payload", &&self.options_payload)
             .finish()
     }
 }
@@ -103,14 +103,14 @@ impl fmt::Debug for TcpPdu {
 #[repr(C, packed)]
 pub struct TcpHeader {
     pub fields: TcpHeaderFields,
-    pub options: [u8],
+    pub options: Data,
 }
 
 impl TcpHeader {
     #[inline]
     #[must_use]
     pub const fn length(&self) -> usize {
-        mem::size_of_val(&self.fields).wrapping_add(self.options.len())
+        mem::size_of_val(&self.fields).wrapping_add(self.options.as_slice().len())
     }
 }
 
@@ -120,7 +120,7 @@ impl fmt::Debug for TcpHeader {
         f.debug_struct("TcpHeader")
             .field("fields", &self.fields)
             // TODO: debug print options
-            .field("options", &format_args!("{:x?}", &self.options))
+            .field("options", &&self.options)
             .finish()
     }
 }

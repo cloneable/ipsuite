@@ -1,9 +1,68 @@
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
-
 pub mod ethernet;
 pub mod ipv4;
 pub mod tcp;
 pub mod udp;
+
+use core::{
+    fmt,
+    ops::{Deref, DerefMut},
+};
+
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
+
+#[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct Data([u8]);
+
+impl Data {
+    #[inline]
+    pub const fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+
+    #[inline]
+    pub const fn as_mut_slice(&mut self) -> &mut [u8] {
+        &mut self.0
+    }
+}
+
+impl fmt::Debug for Data {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TOOD: include (truncated) slice?
+        f.debug_tuple("Data").field(&self.0.len()).finish()
+    }
+}
+
+impl AsRef<[u8]> for Data {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.as_slice()
+    }
+}
+
+impl AsMut<[u8]> for Data {
+    #[inline]
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.as_mut_slice()
+    }
+}
+
+impl Deref for Data {
+    type Target = [u8];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl DerefMut for Data {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
+    }
+}
 
 // TODO: native byteorder
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
