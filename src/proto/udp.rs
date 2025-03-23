@@ -2,13 +2,13 @@ use core::{fmt, mem};
 
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
-use super::{ChecksumWords, Data};
+use super::{ChecksumWords, DataDebug};
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct UdpPdu {
     pub header: UdpHeader,
-    pub payload: Data,
+    pub payload: [u8],
 }
 
 type UdpPduWords = ChecksumWords<{ UdpHeader::WORDS }, 3>;
@@ -17,7 +17,7 @@ impl UdpPdu {
     #[must_use]
     #[inline]
     pub const fn length(&self) -> usize {
-        mem::size_of_val(&self.header).wrapping_add(self.payload.as_slice().len())
+        mem::size_of_val(&self.header).wrapping_add(self.payload.len())
     }
 
     #[inline]
@@ -79,7 +79,7 @@ impl fmt::Debug for UdpPdu {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UdpPdu")
             .field("header", &self.header)
-            .field("payload", &&self.payload)
+            .field("payload", &DataDebug(&self.payload))
             .finish()
     }
 }
