@@ -245,12 +245,54 @@ pub struct Ipv4Address(pub [u8; 4]);
 
 impl Ipv4Address {
     pub const UNSPECIFIED: Self = Self([0, 0, 0, 0]);
+
+    #[must_use]
+    #[inline]
+    pub const fn into_std(self) -> core::net::Ipv4Addr {
+        let [a, b, c, d] = self.0;
+        core::net::Ipv4Addr::new(a, b, c, d)
+    }
+
+    #[must_use]
+    #[inline]
+    pub const fn from_std(addr: core::net::Ipv4Addr) -> Self {
+        Ipv4Address(addr.octets())
+    }
+}
+
+impl From<core::net::Ipv4Addr> for Ipv4Address {
+    #[inline]
+    fn from(addr: core::net::Ipv4Addr) -> Self {
+        Ipv4Address::from_std(addr)
+    }
+}
+
+impl From<&core::net::Ipv4Addr> for Ipv4Address {
+    #[inline]
+    fn from(addr: &core::net::Ipv4Addr) -> Self {
+        Ipv4Address::from_std(*addr)
+    }
+}
+
+impl From<Ipv4Address> for core::net::Ipv4Addr {
+    #[inline]
+    fn from(addr: Ipv4Address) -> Self {
+        addr.into_std()
+    }
+}
+
+impl From<&Ipv4Address> for core::net::Ipv4Addr {
+    #[inline]
+    fn from(addr: &Ipv4Address) -> Self {
+        addr.into_std()
+    }
 }
 
 impl fmt::Display for Ipv4Address {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}.{}", self.0[0], self.0[1], self.0[2], self.0[3])
+        let [a, b, c, d] = self.0;
+        write!(f, "{a}.{b}.{c}.{d}")
     }
 }
 

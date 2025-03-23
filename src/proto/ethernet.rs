@@ -50,8 +50,8 @@ impl fmt::Debug for EthernetPdu {
 #[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct EthernetHeader {
-    pub dst: MacAddress,
-    pub src: MacAddress,
+    pub daddr: MacAddress,
+    pub saddr: MacAddress,
     pub ethertype: EtherType,
     // TODO: checksum
 }
@@ -65,8 +65,8 @@ impl fmt::Display for EthernetHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Ethernet: src={} dst={} type={}",
-            self.src, self.dst, self.ethertype
+            "Ethernet: saddr={} daddr={} type={}",
+            self.saddr, self.daddr, self.ethertype
         )
     }
 }
@@ -104,13 +104,9 @@ impl fmt::Debug for MacAddress {
 
 impl fmt::Display for MacAddress {
     #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let b = self.0;
-        write!(
-            f,
-            "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-            b[0], b[1], b[2], b[3], b[4], b[5]
-        )
+    fn fmt(&self, fmtr: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let [a, b, c, d, e, f] = self.0;
+        write!(fmtr, "{a:02x}:{b:02x}:{c:02x}:{d:02x}:{e:02x}:{f:02x}")
     }
 }
 
