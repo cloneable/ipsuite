@@ -30,15 +30,11 @@ impl TcpPdu {
 
     #[inline]
     pub fn as_parts(&self) -> Result<(&TcpHeader, &[u8]), TcpPduError> {
-        let len = self.fields.header_length();
         let buf = self.as_bytes();
-        if len < TcpHeaderFields::SIZE {
-            return Err(TcpPduError::InvalidHeaderLength);
-        }
+        let header_len = self.fields.header_length();
         let (header, payload) = buf
-            .split_at_checked(len)
+            .split_at_checked(header_len)
             .ok_or(TcpPduError::InvalidHeaderLength)?;
-
         Ok((
             TcpHeader::ref_from_bytes(header).map_err(zerocopy::SizeError::from)?,
             payload,
@@ -51,8 +47,9 @@ impl TcpPdu {
         options: usize,
     ) -> Result<(&mut TcpHeader, &mut [u8]), TcpPduError> {
         let buf = self.as_mut_bytes();
+        let header_len = TcpHeaderFields::SIZE.saturating_add(options);
         let (header, payload) = buf
-            .split_at_mut_checked(TcpHeaderFields::SIZE.saturating_add(options))
+            .split_at_mut_checked(header_len)
             .ok_or(TcpPduError::InvalidHeaderLength)?;
         Ok((
             TcpHeader::mut_from_bytes(header).map_err(zerocopy::SizeError::from)?,

@@ -28,14 +28,20 @@ impl Ipv4Pdu {
 
     #[inline]
     pub fn as_parts(&self) -> Result<(&Ipv4Header, &[u8]), Ipv4PduError> {
-        let len = self.fields.header_length();
         let buf = self.as_bytes();
-        if len < Ipv4HeaderFields::SIZE {
-            return Err(Ipv4PduError::InvalidHeaderLength);
-        }
+        let header_len = self.fields.header_length();
         let (header, payload) = buf
-            .split_at_checked(len)
+            .split_at_checked(header_len)
             .ok_or(Ipv4PduError::InvalidHeaderLength)?;
+
+        let payload_len = self
+            .fields
+            .packet_length()
+            .checked_sub(header_len)
+            .ok_or(Ipv4PduError::InvalidHeaderLength)?;
+        let payload = payload
+            .get(..payload_len)
+            .ok_or(Ipv4PduError::BufferTooShort)?;
 
         Ok((
             Ipv4Header::ref_from_bytes(header).map_err(zerocopy::SizeError::from)?,
