@@ -51,3 +51,7 @@
 )]
 
 pub mod proto;
+
+// Re-export the matching version of zerocopy.
+#[doc(hidden)]
+pub use zerocopy;
