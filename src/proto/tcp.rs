@@ -100,14 +100,14 @@ impl fmt::Debug for TcpPdu {
 #[repr(C, packed)]
 pub struct TcpHeader {
     pub fields: TcpHeaderFields,
-    pub options: [u8],
+    pub options: TcpOptions,
 }
 
 impl TcpHeader {
     #[inline]
     #[must_use]
     pub const fn length(&self) -> usize {
-        mem::size_of_val(&self.fields).wrapping_add(self.options.len())
+        mem::size_of_val(&self.fields).wrapping_add(self.options.0.len())
     }
 }
 
@@ -301,6 +301,122 @@ impl fmt::Display for TcpFlag {
     }
 }
 
+pub trait TcpOptionsVisitor {
+    fn visit_unknown(&mut self, kind: TcpOptionKind, data: &[u8]) -> Result<(), TcpPduError>;
+
+    fn visit_mss(&mut self, mss: MaximumSegmentSize) -> Result<(), TcpPduError>;
+
+    fn visit_window_scale(&mut self, window_scale: WindowScale) -> Result<(), TcpPduError>;
+
+    fn visit_sack_perm(&mut self) -> Result<(), TcpPduError>;
+
+    fn visit_sack(&mut self, sack: &SelectiveAck) -> Result<(), TcpPduError>;
+
+    fn visit_timestamp(&mut self, ts: Timestamp) -> Result<(), TcpPduError>;
+
+    // TODO: MD5
+
+    fn visit_user_timeout(&mut self, uto: UserTimeout) -> Result<(), TcpPduError>;
+
+    fn visit_tcp_auth(&mut self, tcp_auth: &TcpAuth) -> Result<(), TcpPduError>;
+
+    // TODO: Multipath TCP
+}
+
+#[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct TcpOptions([u8]);
+
+impl TcpOptions {
+    #[inline]
+    pub fn length(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn accept(&self, visitor: &mut impl TcpOptionsVisitor) -> Result<(), TcpPduError> {
+        let mut buf = &self.0;
+        if buf.is_empty() {
+            return Ok(());
+        }
+        while !buf.is_empty() {
+            let kind = TcpOptionKind(buf[0]);
+            match kind {
+                TcpOptionKind::EOL => return Ok(()), // TODO: check trailing data?
+                TcpOptionKind::NOP => buf = &buf[1..],
+                _ => {
+                    // TODO: bypass header, read length directly
+                    let (header, remainder) =
+                        TcpOptionHeader::ref_from_prefix(buf).map_err(zerocopy::SizeError::from)?;
+                    let (opt_buf, remainder) = remainder
+                        .split_at_checked(
+                            (header.length as usize)
+                                .checked_sub(mem::size_of::<TcpOptionHeader>())
+                                .ok_or(TcpPduError::InvalidOptionLength)?,
+                        )
+                        .ok_or(TcpPduError::BufferTooShort)?;
+                    match header.kind {
+                        TcpOptionKind::MSS => {
+                            let mss = MaximumSegmentSize::read_from_bytes(opt_buf)
+                                .map_err(zerocopy::SizeError::from)?;
+                            visitor.visit_mss(mss)?;
+                        }
+                        TcpOptionKind::WINDOW_SCALE => {
+                            let ws = WindowScale::read_from_bytes(opt_buf)
+                                .map_err(zerocopy::SizeError::from)?;
+                            visitor.visit_window_scale(ws)?;
+                        }
+                        TcpOptionKind::SACK_PERM => {
+                            if !opt_buf.is_empty() {
+                                return Err(TcpPduError::InvalidOptionLength);
+                            }
+                            visitor.visit_sack_perm()?;
+                        }
+                        TcpOptionKind::SACK => {
+                            // TODO: lengths, ref_from_bytes_with_elems?
+                            let sack = SelectiveAck::ref_from_bytes(opt_buf)
+                                .map_err(zerocopy::SizeError::from)?;
+                            visitor.visit_sack(sack)?;
+                        }
+                        TcpOptionKind::TIMESTAMP => {
+                            let ts = Timestamp::read_from_bytes(opt_buf)
+                                .map_err(zerocopy::SizeError::from)?;
+                            visitor.visit_timestamp(ts)?;
+                        }
+                        TcpOptionKind::USER_TIMEOUT => {
+                            let uto = UserTimeout::read_from_bytes(opt_buf)
+                                .map_err(zerocopy::SizeError::from)?;
+                            visitor.visit_user_timeout(uto)?;
+                        }
+                        TcpOptionKind::TCP_AUTH => {
+                            let tcp_auth = TcpAuth::ref_from_bytes(opt_buf)
+                                .map_err(zerocopy::SizeError::from)?;
+                            visitor.visit_tcp_auth(tcp_auth)?;
+                        }
+                        // TcpOptionKind::MULTIPATH => MultipathTcp::ref_from_bytes(opt_buf).map_err(zerocopy::SizeError::from)?;
+                        _ => visitor.visit_unknown(header.kind, opt_buf)?,
+                    }
+                    buf = remainder;
+                }
+            };
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for TcpOptions {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("TcpOptions").finish_non_exhaustive()
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct TcpOptionHeader {
+    kind: TcpOptionKind,
+    length: u8,
+}
+
 #[derive(
     Copy,
     Clone,
@@ -326,6 +442,7 @@ impl TcpOptionKind {
     pub const SACK_PERM: Self = Self(4);
     pub const SACK: Self = Self(5);
     pub const TIMESTAMP: Self = Self(8);
+    pub const MD5: Self = Self(19);
     pub const USER_TIMEOUT: Self = Self(28);
     pub const TCP_AUTH: Self = Self(29);
     pub const MULTIPATH: Self = Self(30);
@@ -342,7 +459,9 @@ impl TcpOptionKind {
         !matches!(self, Self::EOL | Self::NOP)
     }
 
-    fn name(self) -> Option<&'static str> {
+    #[inline]
+    #[must_use]
+    pub const fn name(self) -> Option<&'static str> {
         Some(match self {
             Self::EOL => "EOL",
             Self::NOP => "NOP",
@@ -351,6 +470,7 @@ impl TcpOptionKind {
             Self::SACK_PERM => "SACK_PERM",
             Self::SACK => "SACK",
             Self::TIMESTAMP => "TIMESTAMP",
+            Self::MD5 => "MD5",
             Self::USER_TIMEOUT => "USER_TIMEOUT",
             Self::TCP_AUTH => "TCP_AUTH",
             Self::MULTIPATH => "MULTIPATH",
@@ -378,49 +498,60 @@ impl fmt::Display for TcpOptionKind {
     }
 }
 
+#[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct MaximumSegmentSize(pub network_endian::U16);
+
+#[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(transparent)]
+pub struct WindowScale(pub u8);
+
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
-pub struct TcpOption {
-    kind: TcpOptionKind,
-    length: u8,
-    data: [u8],
-}
+pub struct SelectiveAck(pub [SelectiveAckRange]);
 
-impl TcpOption {
-    #[inline]
-    pub fn parse(buf: &[u8]) -> Result<&TcpOption, zerocopy::SizeError<&[u8], TcpOption>> {
-        TcpOption::ref_from_prefix(buf)
-            .map_err(zerocopy::SizeError::from)
-            .map(|r| r.0)
-    }
-}
-
-impl fmt::Debug for TcpOption {
-    #[inline]
+impl fmt::Debug for SelectiveAck {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("TcpOption")
-            .field("kind", &self.kind)
-            .field("length", &self.length)
-            .field("data", &format_args!("{:x?}", &self.data))
-            .finish()
+        f.debug_tuple("SelectiveAck").field(&&self.0).finish()
     }
 }
 
 #[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
-pub struct MaximumSegmentSizeTcpOption {
-    kind: TcpOptionKind,
-    length: u8,
-    value: network_endian::U16,
+pub struct SelectiveAckRange {
+    pub begin: network_endian::U32,
+    pub end: network_endian::U32,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum TcpOptionEnum {
-    MaximumSegmentSize {
-        kind: TcpOptionKind,
-        length: u8,
-        value: network_endian::U16,
-    },
+#[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct Timestamp {
+    pub value: network_endian::U32,
+    pub echo_reply: network_endian::U32,
+}
+
+#[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct UserTimeout {
+    pub granularity_timeout: network_endian::U16,
+}
+
+#[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct TcpAuth {
+    pub key_id: u8,
+    pub next_key_id: u8,
+    pub mac: [u8],
+}
+
+impl fmt::Debug for TcpAuth {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TcpAuth")
+            .field("key_id", &self.key_id)
+            .field("next_key_id", &self.next_key_id)
+            .field("mac", &format_args!("{:02x?}", &self.mac))
+            .finish()
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -428,6 +559,7 @@ pub enum TcpPduError {
     InvalidHeaderLength,
     InvalidChecksum,
     BufferTooShort,
+    InvalidOptionLength,
 }
 
 // TODO: sealed trait for T
