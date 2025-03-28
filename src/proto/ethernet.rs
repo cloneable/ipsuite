@@ -88,6 +88,10 @@ impl fmt::Display for EthernetHeader {
 #[repr(transparent)]
 pub struct MacAddress(pub [u8; 6]);
 
+impl MacAddress {
+    pub const BROADCAST: Self = Self([0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
+}
+
 impl From<[u8; 6]> for MacAddress {
     #[inline]
     fn from(value: [u8; 6]) -> Self {
