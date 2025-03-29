@@ -2,6 +2,8 @@ use core::{fmt, mem};
 
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
+use crate::proto::Checksum;
+
 use super::{ChecksumWords, DataDebug};
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
@@ -90,7 +92,7 @@ pub struct UdpHeader {
     pub sport: network_endian::U16,
     pub dport: network_endian::U16,
     pub length: network_endian::U16,
-    pub checksum: network_endian::U16,
+    pub checksum: Checksum,
 }
 
 impl UdpHeader {
@@ -103,7 +105,7 @@ impl fmt::Display for UdpHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "UDP: sport={} dport={} length={} checksum={:04x}",
+            "UDP: sport={} dport={} length={} checksum={}",
             self.sport, self.dport, self.length, self.checksum,
         )
     }

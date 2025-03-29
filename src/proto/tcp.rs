@@ -2,6 +2,8 @@ use core::{fmt, mem, ops};
 
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
+use crate::proto::Checksum;
+
 use super::{ChecksumWords, DataDebug};
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
@@ -132,7 +134,7 @@ pub struct TcpHeaderFields {
     pub data_offset: u8,
     pub flags: TcpFlagSet,
     pub window: network_endian::U16,
-    pub checksum: network_endian::U16,
+    pub checksum: Checksum,
     pub urgent_ptr: network_endian::U16,
 }
 
@@ -147,7 +149,7 @@ impl Default for TcpHeaderFields {
             data_offset: 0x50,
             flags: TcpFlagSet(0),
             window: 0.into(),
-            checksum: 0.into(),
+            checksum: Checksum::default(),
             urgent_ptr: 0.into(),
         }
     }
@@ -158,7 +160,7 @@ impl fmt::Display for TcpHeaderFields {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "TCP: sport={} dport={} seq={} ack={} dataofs={} flags={} window={} checksum={:04x} \
+            "TCP: sport={} dport={} seq={} ack={} dataofs={} flags={} window={} checksum={} \
              urgent_ptr={}",
             self.sport,
             self.dport,

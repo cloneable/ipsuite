@@ -2,6 +2,8 @@ use core::{fmt, mem};
 
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, network_endian};
 
+use crate::proto::Checksum;
+
 use super::{ChecksumWords, DataDebug};
 
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
@@ -148,7 +150,7 @@ pub struct Ipv4HeaderFields {
     pub fragmentation: Fragmentation,
     pub ttl: u8,
     pub protocol: InetProtocol,
-    pub checksum: network_endian::U16,
+    pub checksum: Checksum,
     pub saddr: Ipv4Address,
     pub daddr: Ipv4Address,
 }
@@ -164,7 +166,7 @@ impl Default for Ipv4HeaderFields {
             fragmentation: Fragmentation::default(),
             ttl: 255,
             protocol: InetProtocol::TCP,
-            checksum: 0.into(),
+            checksum: Checksum::default(),
             saddr: Ipv4Address::UNSPECIFIED,
             daddr: Ipv4Address::UNSPECIFIED,
         }
@@ -176,7 +178,7 @@ impl fmt::Display for Ipv4HeaderFields {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "IPv4: len={} id={} frag={}/{} ttl={} protocol={} checksum={:04x} saddr={} daddr={}",
+            "IPv4: len={} id={} frag={}/{} ttl={} protocol={} checksum={} saddr={} daddr={}",
             self.total_length,
             self.identification,
             self.fragmentation.flags(),

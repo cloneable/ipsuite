@@ -18,6 +18,80 @@ impl fmt::Debug for DataDebug<'_> {
     }
 }
 
+#[derive(
+    Copy,
+    Clone,
+    Default,
+    FromBytes,
+    IntoBytes,
+    KnownLayout,
+    Immutable,
+    Unaligned,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+)]
+#[repr(transparent)]
+pub struct Checksum(network_endian::U16);
+
+impl Checksum {
+    #[inline]
+    pub const fn new(value: u16) -> Self {
+        Checksum(network_endian::U16::new(value))
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(transparent)]
+pub struct ChecksumBuilder(u32);
+
+impl ChecksumBuilder {
+    #[inline]
+    pub const fn new(initial: u32) -> Self {
+        ChecksumBuilder(initial)
+    }
+
+    #[expect(clippy::as_conversions, reason = "u16 to u32")]
+    #[inline]
+    pub const fn update(&mut self, value: network_endian::U16) {
+        self.0 = self.0.wrapping_add(value.get() as u32);
+    }
+
+    #[expect(clippy::cast_possible_truncation, reason = "truncate checksum")]
+    #[inline]
+    pub const fn build(self) -> Checksum {
+        let csum = !(self.0 as u16).wrapping_add(self.0.wrapping_shr(16) as u16);
+        Checksum::new(csum)
+    }
+
+    #[expect(clippy::cast_possible_truncation, reason = "truncate checksum")]
+    #[inline]
+    pub const fn build_nonzero(self) -> Checksum {
+        let mut csum = (self.0 as u16).wrapping_add(self.0.wrapping_shr(16) as u16);
+        if csum != 0xffffu16 {
+            csum = !csum;
+        }
+        Checksum::new(csum)
+    }
+}
+
+impl fmt::Debug for Checksum {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Checksum")
+            .field(&format_args!("{}", self))
+            .finish()
+    }
+}
+
+impl fmt::Display for Checksum {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0x{:04x}", self.0)
+    }
+}
+
 // TODO: native byteorder
 #[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
