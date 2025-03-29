@@ -69,6 +69,17 @@ pub struct ArpEthernetIPv4Addresses {
     pub target: ArpEthernetIPv4,
 }
 
+impl fmt::Display for ArpEthernetIPv4Addresses {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "sha={} spa={} tha={} tpa={}",
+            self.sender.mac, self.sender.ipv4, self.target.mac, self.target.ipv4
+        )
+    }
+}
+
 #[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C, packed)]
 pub struct ArpEthernetIPv4 {
@@ -96,10 +107,12 @@ pub struct ArpEthernetIPv4 {
 pub struct HardwareType(pub network_endian::U16);
 
 impl HardwareType {
-    const ETHERNET: Self = Self::new(1);
+    pub const ETHERNET: Self = Self::new(1);
 
-    const fn new(type_: u16) -> Self {
-        HardwareType(network_endian::U16::new(type_))
+    #[inline]
+    #[must_use]
+    pub const fn new(htype: u16) -> Self {
+        HardwareType(network_endian::U16::new(htype))
     }
 
     #[inline]
@@ -143,10 +156,10 @@ impl fmt::Display for HardwareType {
 pub struct ProtocolType(pub network_endian::U16);
 
 impl ProtocolType {
-    const IPV4: Self = Self::new(0x0800);
+    pub const IPV4: Self = Self::new(0x0800);
 
-    const fn new(type_: u16) -> Self {
-        ProtocolType(network_endian::U16::new(type_))
+    pub const fn new(ptype: u16) -> Self {
+        ProtocolType(network_endian::U16::new(ptype))
     }
 
     #[inline]
@@ -193,8 +206,8 @@ impl ArpOperation {
     const REQUEST: Self = Self::new(1);
     const REPLY: Self = Self::new(2);
 
-    const fn new(type_: u16) -> Self {
-        ArpOperation(network_endian::U16::new(type_))
+    pub const fn new(oper: u16) -> Self {
+        ArpOperation(network_endian::U16::new(oper))
     }
 
     #[inline]

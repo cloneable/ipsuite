@@ -158,7 +158,8 @@ impl fmt::Display for TcpHeaderFields {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "TCP: sport={} dport={} seq={} ack={} dataofs={} flags={} window={} checksum={:04x} urgent_ptr={}",
+            "TCP: sport={} dport={} seq={} ack={} dataofs={} flags={} window={} checksum={:04x} \
+             urgent_ptr={}",
             self.sport,
             self.dport,
             self.seq_num,
@@ -392,7 +393,7 @@ impl TcpOptions {
                                 .map_err(zerocopy::SizeError::from)?;
                             visitor.visit_tcp_auth(tcp_auth)?;
                         }
-                        // TcpOptionKind::MULTIPATH => MultipathTcp::ref_from_bytes(opt_buf).map_err(zerocopy::SizeError::from)?;
+                        // TcpOptionKind::MULTIPATH =>
                         _ => visitor.visit_unknown(header.kind, opt_buf)?,
                     }
                     buf = remainder;
