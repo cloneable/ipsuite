@@ -26,10 +26,19 @@ The crate gives Rust code a safe, zero-cost way to read common network protocols
 
 Both the safety and the efficiency of those views rest on Google's `zerocopy` crate. zerocopy's derives (`FromBytes`, `IntoBytes`, `KnownLayout`, `Immutable`, `Unaligned`) carry the proof that a `#[repr(C, packed)]` struct's bit pattern is valid for any input, so that obligation lives in a single audited dependency rather than spread across this codebase. Everything user-facing here is safe Rust; the only `unsafe` is inside zerocopy itself. The same machinery delivers efficiency: `&[u8]` becomes `&XxxPdu` via a length check and a pointer cast — no parsing, no copy, no allocation.
 
-Three constraints fall out of this:
+The design goals, in priority order:
 
-- **`no_std`, no `alloc`.** The crate must work in kernels, embedded targets, and userland alike. The only runtime dependency is zerocopy, which has the same posture. `std` is opt-in via the `std` feature; today it only toggles the `no_std` attribute.
+- **Cover the full Internet Protocol Suite.** Wire-format types for Ethernet, ARP, IPv4, IPv6, ICMP, TCP, and UDP.
+- **Read/write asymmetry.** Reading is the focus; mutation is supported (`from_bytes_mut`, `update_checksum`, …) but secondary, and a complete write/build API is TBD.
+- **No `unsafe` in this crate.** All `unsafe` lives inside `zerocopy`.
+- **No panics in the safe API.** Fallible operations return `Result`; the deny-listed lints (`indexing_slicing`, `unwrap_used`, `get_unwrap`) prevent hidden panics in code that doesn't look fallible at first glance.
+- **Memory is directly mapped to data types — no copies, no parsing, no intermediate representation.** A `&[u8]` becomes a `&XxxPdu` via a length check and a pointer cast.
+- **A thin layer the compiler can mostly remove.** No virtual dispatch, no boxing, no hidden allocations. Reading a field is a load plus (where applicable) a byte-swap.
 - **Endianness is in the type system.** Every multi-byte wire field is a `network_endian::U16/U32/...`. Byte-order conversion happens once at the accessor, not scattered through call sites. A native-endian variant for hot paths is planned (see `// TODO: native byteorder` markers).
+- **`no_std`, no `alloc` by default.** The crate must work in kernels, embedded targets, and userland alike. The only runtime dependency is zerocopy, which has the same posture. `std` is opt-in via the `std` feature; today it only toggles the `no_std` attribute. An `alloc` feature may be added later to support writing.
+- **No I/O, no global state.** Buffers are caller-owned; the crate has no sockets, no pcap reader, no `static`s, no init. It composes with any packet source (libpcap, AF_PACKET, virtio-net, eBPF) and any concurrency model.
+- **Errors are flat, allocation-free enums.** Each module's `XxxPduError` is a tiny enum, no `Box<dyn Error>`, no `String` — cheap to construct and propagate.
+- **Const-friendly accessors and constants where possible.** Field accessors and well-known constants (`InetProtocol::TCP`, `HardwareType::ETHERNET`, …) are `const fn`, enabling compile-time matching and configuration.
 - **The `zerocopy` re-export is part of the public API.** `pub use zerocopy;` in `lib.rs` lets downstream crates pin the matching version and exchange `FromBytes`/`IntoBytes` types across crate boundaries without version skew.
 
 ## Architecture
