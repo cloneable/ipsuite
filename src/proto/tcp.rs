@@ -332,27 +332,26 @@ pub struct TcpOptions([u8]);
 
 impl TcpOptions {
     #[inline]
+    #[must_use]
     pub fn length(&self) -> usize {
         self.0.len()
     }
 
+    #[inline]
     pub fn accept(&self, visitor: &mut impl TcpOptionsVisitor) -> Result<(), TcpPduError> {
         let mut buf = &self.0;
-        if buf.is_empty() {
-            return Ok(());
-        }
-        while !buf.is_empty() {
-            let kind = TcpOptionKind(buf[0]);
+        while let Some((&first, rest)) = buf.split_first() {
+            let kind = TcpOptionKind(first);
             match kind {
                 TcpOptionKind::EOL => return Ok(()), // TODO: check trailing data?
-                TcpOptionKind::NOP => buf = &buf[1..],
+                TcpOptionKind::NOP => buf = rest,
                 _ => {
                     // TODO: bypass header, read length directly
                     let (header, remainder) =
                         TcpOptionHeader::ref_from_prefix(buf).map_err(zerocopy::SizeError::from)?;
                     let (opt_buf, remainder) = remainder
                         .split_at_checked(
-                            (header.length as usize)
+                            usize::from(header.length)
                                 .checked_sub(mem::size_of::<TcpOptionHeader>())
                                 .ok_or(TcpPduError::InvalidOptionLength)?,
                         )
@@ -510,6 +509,7 @@ pub struct WindowScale(pub u8);
 pub struct SelectiveAck(pub [SelectiveAckRange]);
 
 impl fmt::Debug for SelectiveAck {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("SelectiveAck").field(&&self.0).finish()
     }
@@ -544,6 +544,7 @@ pub struct TcpAuth {
 }
 
 impl fmt::Debug for TcpAuth {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TcpAuth")
             .field("key_id", &self.key_id)

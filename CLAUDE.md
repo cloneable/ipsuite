@@ -53,11 +53,13 @@ The standard surface on each PDU is:
 - `clippy::arithmetic_side_effects` — use `wrapping_*`, `checked_*`, `saturating_*` explicitly. Plain `+`, `-`, `*`, `>>` on integers will fail.
 - `clippy::as_conversions`, `clippy::as_underscore` — no `as` casts. Use `From`/`TryFrom`/`.into()` where possible.
 - `clippy::std_instead_of_core`, `clippy::alloc_instead_of_core` — import from `core::`, never `std::` or `alloc::` (the crate is `no_std`).
-- `clippy::missing_inline_in_public_items` — every public function/method needs `#[inline]`.
+- `clippy::missing_inline_in_public_items` — every public function/method needs `#[inline]`. Apply uniformly, including to large or generic functions where the hint is effectively a no-op (the compiler ignores it for big bodies, and generic functions already expose their MIR to downstream crates). The annotation exists to satisfy the lint, not to claim "please inline me" — don't opt out with `#[expect]` per call site.
 - `clippy::must_use_candidate` — pure getters returning a value need `#[must_use]`.
 - `missing_copy_implementations`, `missing_debug_implementations` — derive or implement both for new public types.
 
 When a deny rule genuinely cannot be satisfied (e.g. a `u16 as u32` widening for checksum math, or a const-generic-checked index), gate it with `#[expect(<lint>, reason = "...")]` (preferred) or `#[allow(<lint>, reason = "...")]` and write the reason. Look at existing call sites in `proto/mod.rs` and `proto/ipv4.rs` for the established phrasing.
+
+When multiple lints fire on the same item, use one `#[expect(...)]` per lint, each with its own specific reason — never combine lints into a single attribute. Each lint represents a distinct concern and deserves its own justification (e.g. `as_conversions` is justified by *why we're using raw `as`*, while `cast_possible_truncation` is justified by *why losing bits is correct here*).
 
 `missing_docs` is currently commented out (`// TODO: missing_docs`) — doc strings are welcome but not yet enforced.
 

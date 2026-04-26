@@ -37,6 +37,7 @@ pub struct Checksum(network_endian::U16);
 
 impl Checksum {
     #[inline]
+    #[must_use]
     pub const fn new(value: u16) -> Self {
         Checksum(network_endian::U16::new(value))
     }
@@ -48,6 +49,7 @@ pub struct ChecksumBuilder(u32);
 
 impl ChecksumBuilder {
     #[inline]
+    #[must_use]
     pub const fn new(initial: u32) -> Self {
         ChecksumBuilder(initial)
     }
@@ -58,15 +60,25 @@ impl ChecksumBuilder {
         self.0 = self.0.wrapping_add(value.get() as u32);
     }
 
-    #[expect(clippy::cast_possible_truncation, reason = "truncate checksum")]
+    #[expect(clippy::as_conversions, reason = "u32 narrowed to u16")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "fold of high and low halves into u16 word"
+    )]
     #[inline]
+    #[must_use]
     pub const fn build(self) -> Checksum {
         let csum = !(self.0 as u16).wrapping_add(self.0.wrapping_shr(16) as u16);
         Checksum::new(csum)
     }
 
-    #[expect(clippy::cast_possible_truncation, reason = "truncate checksum")]
+    #[expect(clippy::as_conversions, reason = "u32 narrowed to u16")]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "fold of high and low halves into u16 word"
+    )]
     #[inline]
+    #[must_use]
     pub const fn build_nonzero(self) -> Checksum {
         let mut csum = (self.0 as u16).wrapping_add(self.0.wrapping_shr(16) as u16);
         if csum != 0xffffu16 {

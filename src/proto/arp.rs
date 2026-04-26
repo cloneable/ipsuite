@@ -44,6 +44,8 @@ pub struct ArpHeader {
 
 impl ArpHeader {
     #[inline]
+    #[must_use]
+    #[expect(clippy::as_conversions, reason = "u8 to usize widening")]
     pub const fn payload_length(self) -> usize {
         (self.hlen as usize)
             .wrapping_shl(1)
@@ -158,6 +160,8 @@ pub struct ProtocolType(pub network_endian::U16);
 impl ProtocolType {
     pub const IPV4: Self = Self::new(0x0800);
 
+    #[inline]
+    #[must_use]
     pub const fn new(ptype: u16) -> Self {
         ProtocolType(network_endian::U16::new(ptype))
     }
@@ -206,6 +210,8 @@ impl ArpOperation {
     const REQUEST: Self = Self::new(1);
     const REPLY: Self = Self::new(2);
 
+    #[inline]
+    #[must_use]
     pub const fn new(oper: u16) -> Self {
         ArpOperation(network_endian::U16::new(oper))
     }
