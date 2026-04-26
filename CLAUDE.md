@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`ipsuite` is a `no_std`, no-alloc Rust crate providing zero-copy view types for the Internet Protocol Suite (Ethernet, ARP, IPv4, IPv6, ICMP, TCP, UDP). It is **work in progress** and pre-1.0 (`0.0.x`). The only runtime dependency is `zerocopy` (re-exported as `ipsuite::zerocopy` so downstream crates can pin the matching version). Edition 2024. Tri-licensed Apache-2.0 OR BSD-2-Clause OR MIT.
+`ipsuite` is a `no_std`, no-alloc Rust crate providing zero-copy view types for a targeted subset of the Internet Protocol Suite (Ethernet, ARP, IPv4, IPv6, ICMPv4, ICMPv6, IGMP, IPsec, TCP, UDP, QUIC headers). It is **work in progress** and pre-1.0 (`0.0.x`). The only runtime dependency is `zerocopy` (re-exported as `ipsuite::zerocopy` so downstream crates can pin the matching version). Edition 2024. Tri-licensed Apache-2.0 OR BSD-2-Clause OR MIT.
+
+**Read alongside [TODO.md](TODO.md).** Open questions, in-flight and staged work, conventions still to settle, and per-file `// TODO` markers live there — `CLAUDE.md` describes the project as it stands; `TODO.md` describes what's still in motion.
 
 ## Commands
 
@@ -28,7 +30,7 @@ Both the safety and the efficiency of those views rest on Google's `zerocopy` cr
 
 The design goals, in priority order:
 
-- **Cover the full Internet Protocol Suite.** Wire-format types for Ethernet, ARP, IPv4, IPv6, ICMP, TCP, and UDP.
+- **Cover a targeted subset of the Internet Protocol Suite.** Wire-format types for Ethernet, ARP, IPv4, IPv6, ICMPv4, ICMPv6, IGMP, IPsec (AH and ESP), TCP, UDP, and QUIC packet headers (long and short). Out of scope by design: SCTP, DCCP, UDP-Lite, tunneling encapsulations (GRE, VXLAN, MPLS), application-layer protocols, and the encrypted body of QUIC packets (handed off to a TLS/QUIC stack).
 - **Read/write asymmetry.** Reading is the focus; mutation is supported (`from_bytes_mut`, `update_checksum`, …) but secondary, and a complete write/build API is TBD.
 - **No `unsafe` in this crate.** All `unsafe` lives inside `zerocopy`.
 - **No panics in the safe API.** Fallible operations return `Result`; the deny-listed lints (`indexing_slicing`, `unwrap_used`, `get_unwrap`) prevent hidden panics in code that doesn't look fallible at first glance.
