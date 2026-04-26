@@ -20,6 +20,18 @@ cargo test <name>            # run a single test once tests are added
 
 There is no `rust-toolchain.toml`, no `rustfmt.toml`, no `clippy.toml`, no CI config, and no test/bench/examples directory yet.
 
+## Design
+
+The crate gives Rust code a safe, zero-cost way to read common network protocols off the wire. Reading — locating headers, decoding fields, walking option lists — is the dominant use case; mutation is supported (`from_bytes_mut`, `update_checksum`, …) but secondary. There is no parser, no serializer, no allocator: the caller owns a byte buffer (from a NIC, a socket, a pcap file, …) and the crate hands back typed views into it.
+
+Both the safety and the efficiency of those views rest on Google's `zerocopy` crate. zerocopy's derives (`FromBytes`, `IntoBytes`, `KnownLayout`, `Immutable`, `Unaligned`) carry the proof that a `#[repr(C, packed)]` struct's bit pattern is valid for any input, so that obligation lives in a single audited dependency rather than spread across this codebase. Everything user-facing here is safe Rust; the only `unsafe` is inside zerocopy itself. The same machinery delivers efficiency: `&[u8]` becomes `&XxxPdu` via a length check and a pointer cast — no parsing, no copy, no allocation.
+
+Three constraints fall out of this:
+
+- **`no_std`, no `alloc`.** The crate must work in kernels, embedded targets, and userland alike. The only runtime dependency is zerocopy, which has the same posture. `std` is opt-in via the `std` feature; today it only toggles the `no_std` attribute.
+- **Endianness is in the type system.** Every multi-byte wire field is a `network_endian::U16/U32/...`. Byte-order conversion happens once at the accessor, not scattered through call sites. A native-endian variant for hot paths is planned (see `// TODO: native byteorder` markers).
+- **The `zerocopy` re-export is part of the public API.** `pub use zerocopy;` in `lib.rs` lets downstream crates pin the matching version and exchange `FromBytes`/`IntoBytes` types across crate boundaries without version skew.
+
 ## Architecture
 
 Every supported protocol lives in `src/proto/<proto>.rs` and is re-exported through `src/proto/mod.rs`. The shape is the same in each file — once you understand one, the others follow.
