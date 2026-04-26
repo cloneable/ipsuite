@@ -28,6 +28,16 @@ The crate gives Rust code a safe, zero-cost way to read common network protocols
 
 Both the safety and the efficiency of those views rest on Google's `zerocopy` crate. zerocopy's derives (`FromBytes`, `IntoBytes`, `KnownLayout`, `Immutable`, `Unaligned`) carry the proof that a `#[repr(C, packed)]` struct's bit pattern is valid for any input, so that obligation lives in a single audited dependency rather than spread across this codebase. Everything user-facing here is safe Rust; the only `unsafe` is inside zerocopy itself. The same machinery delivers efficiency: `&[u8]` becomes `&XxxPdu` via a length check and a pointer cast — no parsing, no copy, no allocation.
 
+Target environments where these constraints pay off:
+
+- **Kernel-side eBPF programs in Rust** (`aya-ebpf` — XDP, TC, cgroup BPF). The BPF VM has no heap, a 512-byte stack, no unwinding, and a verifier that wants every memory access proved in-bounds at static-analysis time. `XxxPdu::from_bytes(&[u8])` — one length check, then typed loads at compile-time-known offsets — is exactly the shape the verifier can reason about, and the lint guardrails (`indexing_slicing`, `unwrap_used`, `arithmetic_side_effects`) drag user code toward verifier-acceptable form, not just toward soundness.
+- **Linux kernel modules in Rust** — same `no_std`/no-alloc constraint, same need for layout-checked typed access to skb data.
+- **Embedded targets without a heap** — microcontrollers, hypervisor data paths, anywhere `alloc` isn't available.
+- **smartNIC programmable data planes** and **DPDK-style userland** that opts out of `std` for cycle budget — `&Ipv4Pdu` over a shared-buffer offset is one memory load, no decode step.
+- **Anywhere bytes come from a shared region** (AF_PACKET mmap ring, virtio-net descriptor, kernel skb, DMA ring, RDMA buffer) and the consumer wants typed access without a copy or wrapper.
+
+Userspace `std` tooling (sniffers, packet generators, scanners) is also possible but isn't where the design constraints earn their keep — for that use case `pnet` is more mature and feature-rich.
+
 The design goals, in priority order:
 
 - **Cover a targeted subset of the Internet Protocol Suite.** Wire-format types for Ethernet, ARP, IPv4, IPv6, ICMPv4, ICMPv6, IGMP, IPsec (AH and ESP), TCP, UDP, and QUIC packet headers (long and short). Out of scope by design: SCTP, DCCP, UDP-Lite, tunneling encapsulations (GRE, VXLAN, MPLS), application-layer protocols, and the encrypted body of QUIC packets (handed off to a TLS/QUIC stack).
