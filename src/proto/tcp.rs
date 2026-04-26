@@ -359,13 +359,11 @@ impl TcpOptions {
                         .ok_or(TcpPduError::BufferTooShort)?;
                     match header.kind {
                         TcpOptionKind::MSS => {
-                            let mss = MaximumSegmentSize::read_from_bytes(opt_buf)
-                                .map_err(zerocopy::SizeError::from)?;
+                            let mss = MaximumSegmentSize::read_from_bytes(opt_buf)?;
                             visitor.visit_mss(mss)?;
                         }
                         TcpOptionKind::WINDOW_SCALE => {
-                            let ws = WindowScale::read_from_bytes(opt_buf)
-                                .map_err(zerocopy::SizeError::from)?;
+                            let ws = WindowScale::read_from_bytes(opt_buf)?;
                             visitor.visit_window_scale(ws)?;
                         }
                         TcpOptionKind::SACK_PERM => {
@@ -381,13 +379,11 @@ impl TcpOptions {
                             visitor.visit_sack(sack)?;
                         }
                         TcpOptionKind::TIMESTAMP => {
-                            let ts = Timestamp::read_from_bytes(opt_buf)
-                                .map_err(zerocopy::SizeError::from)?;
+                            let ts = Timestamp::read_from_bytes(opt_buf)?;
                             visitor.visit_timestamp(ts)?;
                         }
                         TcpOptionKind::USER_TIMEOUT => {
-                            let uto = UserTimeout::read_from_bytes(opt_buf)
-                                .map_err(zerocopy::SizeError::from)?;
+                            let uto = UserTimeout::read_from_bytes(opt_buf)?;
                             visitor.visit_user_timeout(uto)?;
                         }
                         TcpOptionKind::TCP_AUTH => {
