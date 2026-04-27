@@ -313,7 +313,7 @@ pub enum TcpOption<'a> {
     SackPerm,
     Sack(&'a SelectiveAck),
     Timestamp(Timestamp),
-    // TODO: MD5
+    Md5(Md5Signature),
     UserTimeout(UserTimeout),
     TcpAuth(&'a TcpAuth),
     Multipath(&'a Multipath),
@@ -402,6 +402,7 @@ impl<'a> TcpOptionsIter<'a> {
                     TcpOptionKind::TIMESTAMP => {
                         TcpOption::Timestamp(Timestamp::read_from_bytes(opt_buf)?)
                     }
+                    TcpOptionKind::MD5 => TcpOption::Md5(Md5Signature::read_from_bytes(opt_buf)?),
                     TcpOptionKind::USER_TIMEOUT => {
                         TcpOption::UserTimeout(UserTimeout::read_from_bytes(opt_buf)?)
                     }
@@ -573,6 +574,21 @@ pub struct SelectiveAckRange {
 pub struct Timestamp {
     pub value: network_endian::U32,
     pub echo_reply: network_endian::U32,
+}
+
+#[derive(Copy, Clone, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct Md5Signature {
+    pub digest: [u8; 16],
+}
+
+impl fmt::Debug for Md5Signature {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Md5Signature")
+            .field("digest", &format_args!("{:02x?}", &self.digest))
+            .finish()
+    }
 }
 
 #[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
