@@ -316,7 +316,7 @@ pub enum TcpOption<'a> {
     // TODO: MD5
     UserTimeout(UserTimeout),
     TcpAuth(&'a TcpAuth),
-    // TODO: Multipath TCP
+    Multipath(&'a Multipath),
     Unknown { kind: TcpOptionKind, data: &'a [u8] },
 }
 
@@ -408,7 +408,9 @@ impl<'a> TcpOptionsIter<'a> {
                     TcpOptionKind::TCP_AUTH => TcpOption::TcpAuth(
                         TcpAuth::ref_from_bytes(opt_buf).map_err(zerocopy::SizeError::from)?,
                     ),
-                    // TcpOptionKind::MULTIPATH =>
+                    TcpOptionKind::MULTIPATH => TcpOption::Multipath(
+                        Multipath::ref_from_bytes(opt_buf).map_err(zerocopy::SizeError::from)?,
+                    ),
                     _ => TcpOption::Unknown {
                         kind: header.kind,
                         data: opt_buf,
@@ -595,6 +597,103 @@ impl fmt::Debug for TcpAuth {
             .field("next_key_id", &self.next_key_id)
             .field("mac", &format_args!("{:02x?}", &self.mac))
             .finish()
+    }
+}
+
+#[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct Multipath {
+    pub subtype_flags: u8,
+    pub data: [u8],
+}
+
+impl Multipath {
+    #[inline]
+    #[must_use]
+    pub const fn subtype(&self) -> MultipathSubtype {
+        MultipathSubtype((self.subtype_flags >> 4) & 0b1111)
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn flags(&self) -> u8 {
+        self.subtype_flags & 0b1111
+    }
+}
+
+impl fmt::Debug for Multipath {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Multipath")
+            .field("subtype", &self.subtype())
+            .field("flags", &self.flags())
+            .field("data", &format_args!("{:02x?}", &self.data))
+            .finish()
+    }
+}
+
+#[derive(
+    Copy,
+    Clone,
+    FromBytes,
+    IntoBytes,
+    KnownLayout,
+    Immutable,
+    Unaligned,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+)]
+#[repr(transparent)]
+pub struct MultipathSubtype(pub u8);
+
+impl MultipathSubtype {
+    pub const MP_CAPABLE: Self = Self(0x0);
+    pub const MP_JOIN: Self = Self(0x1);
+    pub const DSS: Self = Self(0x2);
+    pub const ADD_ADDR: Self = Self(0x3);
+    pub const REMOVE_ADDR: Self = Self(0x4);
+    pub const MP_PRIO: Self = Self(0x5);
+    pub const MP_FAIL: Self = Self(0x6);
+    pub const MP_FASTCLOSE: Self = Self(0x7);
+    pub const MP_TCPRST: Self = Self(0x8);
+
+    #[inline]
+    #[must_use]
+    pub const fn name(self) -> Option<&'static str> {
+        Some(match self {
+            Self::MP_CAPABLE => "MP_CAPABLE",
+            Self::MP_JOIN => "MP_JOIN",
+            Self::DSS => "DSS",
+            Self::ADD_ADDR => "ADD_ADDR",
+            Self::REMOVE_ADDR => "REMOVE_ADDR",
+            Self::MP_PRIO => "MP_PRIO",
+            Self::MP_FAIL => "MP_FAIL",
+            Self::MP_FASTCLOSE => "MP_FASTCLOSE",
+            Self::MP_TCPRST => "MP_TCPRST",
+            _ => return None,
+        })
+    }
+}
+
+impl fmt::Debug for MultipathSubtype {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("MultipathSubtype")
+            .field(&format_args!("{self}"))
+            .finish()
+    }
+}
+
+impl fmt::Display for MultipathSubtype {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.name() {
+            Some(name) => f.write_str(name),
+            None => write!(f, "0x{:x}", self.0),
+        }
     }
 }
 
