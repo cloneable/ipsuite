@@ -317,6 +317,7 @@ pub enum TcpOption<'a> {
     UserTimeout(UserTimeout),
     TcpAuth(&'a TcpAuth),
     Multipath(&'a Multipath),
+    TcpFastOpen(&'a TcpFastOpen),
     Unknown { kind: TcpOptionKind, data: &'a [u8] },
 }
 
@@ -412,6 +413,9 @@ impl<'a> TcpOptionsIter<'a> {
                     TcpOptionKind::MULTIPATH => TcpOption::Multipath(
                         Multipath::ref_from_bytes(opt_buf).map_err(zerocopy::SizeError::from)?,
                     ),
+                    TcpOptionKind::TFO => TcpOption::TcpFastOpen(
+                        TcpFastOpen::ref_from_bytes(opt_buf).map_err(zerocopy::SizeError::from)?,
+                    ),
                     _ => TcpOption::Unknown {
                         kind: header.kind,
                         data: opt_buf,
@@ -491,11 +495,15 @@ impl TcpOptionKind {
     pub const USER_TIMEOUT: Self = Self(28);
     pub const TCP_AUTH: Self = Self(29);
     pub const MULTIPATH: Self = Self(30);
+    pub const TFO: Self = Self(34);
 
     #[inline]
     #[must_use]
     pub const fn syn_only(self) -> bool {
-        matches!(self, Self::MSS | Self::WINDOW_SCALE | Self::SACK_PERM)
+        matches!(
+            self,
+            Self::MSS | Self::WINDOW_SCALE | Self::SACK_PERM | Self::TFO
+        )
     }
 
     #[inline]
@@ -519,6 +527,7 @@ impl TcpOptionKind {
             Self::USER_TIMEOUT => "USER_TIMEOUT",
             Self::TCP_AUTH => "TCP_AUTH",
             Self::MULTIPATH => "MULTIPATH",
+            Self::TFO => "TFO",
             _ => return None,
         })
     }
@@ -710,6 +719,30 @@ impl fmt::Display for MultipathSubtype {
             Some(name) => f.write_str(name),
             None => write!(f, "0x{:x}", self.0),
         }
+    }
+}
+
+#[derive(FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
+#[repr(C, packed)]
+pub struct TcpFastOpen {
+    pub cookie: [u8],
+}
+
+impl TcpFastOpen {
+    /// `true` when the option carries no cookie, signalling a request for the peer to mint one.
+    #[inline]
+    #[must_use]
+    pub const fn is_request(&self) -> bool {
+        self.cookie.is_empty()
+    }
+}
+
+impl fmt::Debug for TcpFastOpen {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TcpFastOpen")
+            .field("cookie", &format_args!("{:02x?}", &self.cookie))
+            .finish()
     }
 }
 
