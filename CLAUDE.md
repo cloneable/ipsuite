@@ -42,6 +42,7 @@ The design goals, in priority order:
 
 - **Cover a targeted subset of the Internet Protocol Suite.** Wire-format types for Ethernet, ARP, IPv4, IPv6, ICMPv4, ICMPv6, IGMP, IPsec (AH and ESP), TCP, UDP, and QUIC packet headers (long and short). Out of scope by design: SCTP, DCCP, UDP-Lite, tunneling encapsulations (GRE, VXLAN, MPLS), application-layer protocols, and the encrypted body of QUIC packets (handed off to a TLS/QUIC stack).
 - **Read/write asymmetry.** Reading is the focus; mutation is supported (`from_bytes_mut`, `update_checksum`, …) but secondary, and a complete write/build API is TBD.
+- **Consistent API across protocols.** Every protocol exposes the same shape: `XxxPdu` / `XxxHeader` / `XxxHeaderFields`, a per-module `XxxPduError` enum, and (where applicable) an iterator yielding enum variants for dynamic sections. Naming follows each protocol's spec — TCP options stay `TcpOption`s, IPv6 extension headers stay `Ipv6ExtensionHeader`s — even though the underlying walk shape is identical.
 - **No `unsafe` in this crate.** All `unsafe` lives inside `zerocopy`.
 - **No panics in the safe API.** Fallible operations return `Result`; the deny-listed lints (`indexing_slicing`, `unwrap_used`, `get_unwrap`) prevent hidden panics in code that doesn't look fallible at first glance.
 - **Memory is directly mapped to data types — no copies, no parsing, no intermediate representation.** A `&[u8]` becomes a `&XxxPdu` via a length check and a pointer cast.
