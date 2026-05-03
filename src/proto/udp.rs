@@ -74,6 +74,19 @@ impl UdpPdu {
     pub fn as_mut_parts(&mut self) -> Result<(&mut UdpHeader, &mut [u8]), UdpPduError> {
         Ok((&mut self.header, &mut self.payload))
     }
+
+    #[inline]
+    pub fn validate(&self) -> Result<(), UdpPduError> {
+        let length = self.header.length.get();
+        if usize::from(length) < UdpHeader::SIZE {
+            return Err(UdpPduError::InvalidLength(length));
+        }
+        let actual = UdpHeader::SIZE.saturating_add(self.payload.len());
+        if usize::from(length) > actual {
+            return Err(UdpPduError::BufferTooShort);
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Debug for UdpPdu {
@@ -112,9 +125,11 @@ impl fmt::Display for UdpHeader {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum UdpPduError {
     InvalidChecksum,
     BufferTooShort,
+    InvalidLength(u16),
 }
 
 // TODO: sealed trait for T

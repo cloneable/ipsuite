@@ -35,6 +35,13 @@ impl EthernetPdu {
     pub fn as_mut_parts(&mut self) -> Result<(&mut EthernetHeader, &mut [u8]), EthernetPduError> {
         Ok((&mut self.header, &mut self.payload))
     }
+
+    // No structural invariants beyond what `from_bytes` enforces. Minimum frame
+    // size and FCS validation are deferred (see TODO.md).
+    #[inline]
+    pub fn validate(&self) -> Result<(), EthernetPduError> {
+        Ok(())
+    }
 }
 
 impl fmt::Debug for EthernetPdu {
@@ -161,6 +168,7 @@ impl fmt::Display for EtherType {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum EthernetPduError {
     BufferTooShort,
 }

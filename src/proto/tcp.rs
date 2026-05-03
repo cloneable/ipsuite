@@ -72,6 +72,19 @@ impl TcpPdu {
             .map_err(|()| TcpPduError::InvalidChecksum)
     }
 
+    #[inline]
+    pub fn validate(&self) -> Result<(), TcpPduError> {
+        let data_offset = self.fields.data_offset();
+        if data_offset < 5 {
+            return Err(TcpPduError::InvalidDataOffset(data_offset));
+        }
+        let (header, _) = self.as_parts()?;
+        for opt in &header.options {
+            opt?;
+        }
+        Ok(())
+    }
+
     fn as_words(&self) -> Result<&TcpPduWords, TcpPduError> {
         // TODO: half word at end
         TcpPduWords::ref_from_bytes(self.as_bytes())
@@ -747,11 +760,13 @@ impl fmt::Debug for TcpFastOpen {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TcpPduError {
     InvalidHeaderLength,
     InvalidChecksum,
     BufferTooShort,
     InvalidOptionLength,
+    InvalidDataOffset(u8),
 }
 
 // TODO: sealed trait for T

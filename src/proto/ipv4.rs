@@ -66,6 +66,29 @@ impl Ipv4Pdu {
             payload,
         ))
     }
+
+    #[inline]
+    pub fn validate(&self) -> Result<(), Ipv4PduError> {
+        let version = self.fields.version();
+        if version != 4 {
+            return Err(Ipv4PduError::InvalidVersion(version));
+        }
+        let ihl = self.fields.ihl();
+        if ihl < 5 {
+            return Err(Ipv4PduError::InvalidIhl(ihl));
+        }
+        if self.fields.fragmentation.reserved() {
+            return Err(Ipv4PduError::ReservedFlagSet);
+        }
+        if self.fields.packet_length() < self.fields.header_length() {
+            return Err(Ipv4PduError::TotalLengthTooSmall);
+        }
+        let actual = Ipv4HeaderFields::SIZE.saturating_add(self.options_payload.len());
+        if self.fields.packet_length() > actual {
+            return Err(Ipv4PduError::BufferTooShort);
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Debug for Ipv4Pdu {
@@ -386,6 +409,12 @@ impl Fragmentation {
 
     #[inline]
     #[must_use]
+    pub const fn reserved(self) -> bool {
+        self.flags() & 0b100 != 0
+    }
+
+    #[inline]
+    #[must_use]
     pub const fn dont_fragment(self) -> bool {
         self.flags() & 0b010 != 0
     }
@@ -428,6 +457,11 @@ pub struct Ipv4PseudoHeader {
 }
 
 impl Ipv4PseudoHeader {
+    /// Pseudo-header partial sum for TCP/UDP checksums.
+    ///
+    /// Caller must have validated `total_length >= header_length()` (e.g.
+    /// via `Ipv4Pdu::validate`); otherwise the payload length wraps and the
+    /// partial sum is meaningless.
     #[allow(clippy::as_conversions, reason = "u16 to u32")]
     #[inline]
     #[must_use]
@@ -471,10 +505,15 @@ impl fmt::Debug for Ipv4PseudoHeader {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Ipv4PduError {
     InvalidHeaderLength,
     InvalidChecksum,
     BufferTooShort,
+    InvalidVersion(u8),
+    InvalidIhl(u8),
+    ReservedFlagSet,
+    TotalLengthTooSmall,
 }
 
 // TODO: sealed trait for T

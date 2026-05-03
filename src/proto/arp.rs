@@ -30,6 +30,14 @@ impl ArpPdu {
             .map_err(zerocopy::SizeError::from)
             .map_err(Into::into)
     }
+
+    #[inline]
+    pub fn validate(&self) -> Result<(), ArpPduError> {
+        if self.addresses.len() != self.header.payload_length() {
+            return Err(ArpPduError::InvalidAddressLength);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Copy, Clone, Debug, FromBytes, IntoBytes, KnownLayout, Immutable, Unaligned)]
@@ -239,10 +247,12 @@ impl fmt::Display for ArpOperation {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ArpPduError {
     InvalidHeaderLength,
     InvalidChecksum,
     BufferTooShort,
+    InvalidAddressLength,
 }
 
 // TODO: sealed trait for T
