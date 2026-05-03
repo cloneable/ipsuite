@@ -182,7 +182,7 @@ impl fmt::Display for Ipv4HeaderFields {
             self.total_length,
             self.identification,
             self.fragmentation.flags(),
-            self.fragmentation.offset(),
+            self.fragmentation.offset_bytes(),
             self.ttl,
             self.protocol,
             self.checksum,
@@ -398,9 +398,15 @@ impl Fragmentation {
 
     #[inline]
     #[must_use]
-    #[allow(clippy::as_conversions, reason = "unsigned to usize")]
-    pub const fn offset(self) -> usize {
-        (self.0.get() & 0b1_1111_1111_1111) as usize
+    #[expect(clippy::as_conversions, reason = "u16 to usize widening")]
+    pub const fn offset_bytes(self) -> usize {
+        (self.offset_raw() as usize).wrapping_mul(8)
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn offset_raw(self) -> u16 {
+        self.0.get() & 0b1_1111_1111_1111
     }
 }
 
